@@ -98,9 +98,9 @@ else:
 import colorama
 
 # modules
-from . import core.util as util
-from . import core.security as security
-from . import core.generators as generators
+import core.util as util
+import core.security as security
+import core.generators as generators
 
 # globals
 colorama.init(autoreset=True)

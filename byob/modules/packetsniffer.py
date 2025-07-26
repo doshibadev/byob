@@ -8,10 +8,11 @@ import struct
 import socket
 import binascii
 import threading
+import sys
 
-try:
+if sys.version_info[0] < 3:
     from StringIO import StringIO  # Python 2
-except ImportError:
+else:
     from io import StringIO        # Python 3
 
 # utilities

