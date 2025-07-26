@@ -957,7 +957,9 @@ class Session(threading.Thread):
             self.info = self.client_info()
             #self.info['id'] = self.id
         except Exception as e:
-            print("Session init exception: " + str(e))
+            import traceback
+            print(f"Session init exception: {str(e)}")
+            traceback.print_exc()
             self.info = None
 
     def kill(self):
@@ -977,16 +979,24 @@ class Session(threading.Thread):
         to identify the session
 
         """
-        header_size = struct.calcsize("!L")
-        header = self.connection.recv(header_size)
-        msg_size = struct.unpack("!L", header)[0]
-        msg = self.connection.recv(msg_size)
-        data = security.decrypt_aes(msg, self.key)
-        info = json.loads(data)
-        for key, val in list(info.items()):
-            if str(val).startswith("_b64"):
-                info[key] = base64.b64decode(str(val[6:])).decode('ascii')
-        return info
+        try:
+            header_size = struct.calcsize("!L")
+            header = self.connection.recv(header_size)
+            msg_size = struct.unpack("!L", header)[0]
+            msg = self.connection.recv(msg_size)
+            data = security.decrypt_aes(msg, self.key)
+            if isinstance(data, bytes):
+                data = data.decode('utf-8')
+            info = json.loads(data)
+            for key, val in list(info.items()):
+                if str(val).startswith("_b64"):
+                    info[key] = base64.b64decode(str(val[6:])).decode('utf-8')
+            return info
+        except Exception as e:
+            import traceback
+            print(f"Session init exception: {str(e)}")
+            traceback.print_exc()
+            return {}
 
     def status(self):
         """
@@ -1016,14 +1026,20 @@ class Session(threading.Thread):
         Returns True if succesfully sent task to server, otherwise False
 
         """
-        if not isinstance(task, dict):
-            raise TypeError('task must be a dictionary object')
-        if not 'session' in task:
-            task['session'] = self.info.get('uid')
-        data = security.encrypt_aes(json.dumps(task), self.key)
-        msg  = struct.pack('!L', len(data)) + data
-        self.connection.sendall(msg)
-        return True
+        try:
+            if not isinstance(task, dict):
+                raise TypeError('task must be a dictionary object')
+            if not 'session' in task:
+                task['session'] = self.info.get('uid')
+            data = security.encrypt_aes(json.dumps(task), self.key)
+            msg  = struct.pack('!L', len(data)) + data
+            self.connection.sendall(msg)
+            return True
+        except Exception as e:
+            import traceback
+            print(f"Send task error: {str(e)}")
+            traceback.print_exc()
+            return False
 
     def recv_task(self):
         """
@@ -1038,16 +1054,23 @@ class Session(threading.Thread):
           :attr datetime completed:  time task was completed by client
 
         """
-
-        header_size = struct.calcsize('!L')
-        header = self.connection.recv(header_size)
-        if len(header) == 4:
-            msg_size = struct.unpack('!L', header)[0]
-            msg = self.connection.recv(msg_size)
-            data = security.decrypt_aes(msg, self.key)
-            return json.loads(data)
-        else:
-            # empty header; peer down, scan or recon. Drop.
+        try:
+            header_size = struct.calcsize('!L')
+            header = self.connection.recv(header_size)
+            if len(header) == 4:
+                msg_size = struct.unpack('!L', header)[0]
+                msg = self.connection.recv(msg_size)
+                data = security.decrypt_aes(msg, self.key)
+                if isinstance(data, bytes):
+                    data = data.decode('utf-8')
+                return json.loads(data)
+            else:
+                # empty header; peer down, scan or recon. Drop.
+                return 0
+        except Exception as e:
+            import traceback
+            print(f"Receive task error: {str(e)}")
+            traceback.print_exc()
             return 0
 
     def run(self):
