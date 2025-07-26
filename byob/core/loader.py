@@ -7,7 +7,7 @@ import imp
 import sys
 import logging
 import contextlib
-    from urllib.request import urlopen
+from urllib.request import urlopen
 
 def log(info='', level='debug'):
     logging.basicConfig(level=logging.DEBUG, handlers=[logging.StreamHandler()])

@@ -77,7 +77,7 @@ def public_ip():
 
     """
     import sys
-        from urllib.request import urlopen
+    from urllib.request import urlopen
     return urlopen('http://api.ipify.org').read().decode('utf-8')
 
 
@@ -142,7 +142,7 @@ def geolocation():
     """
     import sys
     import json
-        from urllib.request import urlopen
+    from urllib.request import urlopen
     response = urlopen('http://ipinfo.io').read().decode('utf-8')
     json_data = json.loads(response)
     latitude, longitude = json_data.get('loc').split(',')
@@ -519,8 +519,8 @@ def ftp(source, host=None, user=None, password=None, filetype=None):
         else:
             if isinstance(source, bytes):
                 source = BytesIO(source)
-        else:
-            source = StringIO(source)
+            else:
+                source = StringIO(source)
         try:
             ftp = ftplib.FTP(host=host, user=user, password=password)
         except:
