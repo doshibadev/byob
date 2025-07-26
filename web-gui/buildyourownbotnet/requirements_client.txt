@@ -1,21 +1,14 @@
-mss==5.0.0;python_version>'3'
-WMI==1.4.9;python_version>'3'
-numpy==1.18.1;python_version>'3'
-pyxhook==1.0.0;python_version>'3'
-twilio==6.35.4;python_version>'3'
-colorama==0.4.3;python_version>'3'
-requests==2.22.0;python_version>'3'
-PyInstaller==3.6;python_version>'3'
+# Python 3.11+ requirements - no version pins for flexibility and compatibility
 
-mss==3.3.0;python_version<'3'
-WMI==1.4.9;python_version<'3'
-numpy==1.15.2;python_version<'3'
-pyxhook==1.0.0;python_version<'3'
-twilio==6.14.0;python_version<'3'
-colorama==0.3.9;python_version<'3'
-requests==2.20.0;python_version<'3'
-PyInstaller==3.3.1;python_version<'3'
+mss                  # Screenshot tool, actively maintained
+WMI                  # Windows Management Instrumentation Python wrapper (windows only)
+numpy                # Core scientific computing library
+pynput               # Replacement for pyxhook, actively maintained for input hooks/keylogging
+twilio               # Twilio API client
+colorama             # Cross-platform colored terminal text
+requests             # HTTP requests library
+PyInstaller          # For packaging Python apps
+opencv-python        # OpenCV bindings, computer vision library
 
-opencv-python==3.4.3.18;python_version<'3'
-
-pypiwin32==223;sys.platform=='win32'
+# Windows-specific package for Windows API access
+pywin32; sys_platform == "win32"

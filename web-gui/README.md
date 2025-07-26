@@ -10,6 +10,34 @@ Questions? [Join the Discord support server](https://discord.gg/8FsSrw7)
 
 __Disclaimer__: This project should be used for authorized testing or educational purposes only.
 
+## Fork Information
+
+This is a fork of the original BYOB project, updated for 2025 with modern Python compatibility and package updates. The following changes have been made to ensure compatibility with current Python versions and maintain functionality:
+
+### Updates & Changes
+
+1. **Cryptocurrency Mining Module**
+   - Replaced deprecated `pyrx` and `pycryptonight` libraries with direct execution of XMRig binaries
+   - Implemented a more reliable mining solution that works across Python versions
+   - Added proper process management for mining operations
+
+2. **Keylogger Module**
+   - Replaced unmaintained `pyHook`/`PyWinHook` with modern `pynput` library
+   - Improved cross-platform compatibility for keylogging functionality
+   - Enhanced key event handling with better special key support
+
+3. **Dependencies**
+   - Updated package requirements to support Python 3.x
+   - Removed dependencies on abandoned libraries
+   - Added compatibility with modern security libraries
+
+4. **Code Modernization**
+   - Updated string formatting to use f-strings
+   - Improved error handling and logging
+   - Enhanced cross-platform compatibility
+
+These updates ensure that BYOB remains functional with modern Python environments while maintaining all the original functionality of the framework.
+
 BYOB is an open-source post-exploitation framework for students, researchers and developers. It includes features such as:
 - Command & control server with intuitive user-interface
 - Custom payload generator for multiple platforms
