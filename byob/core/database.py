@@ -11,12 +11,12 @@ import datetime
 import collections
 
 # modules
-import util
+from . import util
 
 try:
-    unicode        # Python 2
+    str        # Python 2
 except NameError:
-    unicode = str  # Python 3
+    str = str  # Python 3
 
 class Database(sqlite3.Connection):
     """
@@ -79,8 +79,8 @@ COMMIT;
         c = globals().get('_color')
 
         if isinstance(data, dict):
-            for k,v in data.items():
-                if isinstance(v, unicode):
+            for k,v in list(data.items()):
+                if isinstance(v, str):
                     try:
                         j = json.loads(v.encode())
                         self._display(j, indent+2)
@@ -239,7 +239,7 @@ COMMIT;
             newclient = False
             if not self.exists(info['uid']):
                 newclient = True
-                self.execute_query("insert into tbl_sessions ({}) values (:{})".format(','.join(info.keys()), ',:'.join(info.keys())), params=info, returns=False, display=False)
+                self.execute_query("insert into tbl_sessions ({}) values (:{})".format(','.join(list(info.keys())), ',:'.join(list(info.keys()))), params=info, returns=False, display=False)
             else:
                 self.execute_query("update tbl_sessions set online=:online, sessions=:sessions, last_online=:last_online where uid=:uid", params=info, returns=False, display=False)
 

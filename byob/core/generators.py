@@ -15,7 +15,7 @@ import tempfile
 import subprocess
 
 # modules
-import util
+from . import util
 
 # templates
 template_main  = string.Template("""
@@ -171,7 +171,7 @@ def main(function, *args, **kwargs):
 
     """
     global template_main
-    options = ', '.join(args) + str(', '.join(str("{}={}".format(k, v) if bool(v.count('{') > 0 and v.count('}') > 0) else "{}='{}'".format(k,v)) for k,v in kwargs.items() if v != None) if len(kwargs) else '')
+    options = ', '.join(args) + str(', '.join(str("{}={}".format(k, v) if bool(v.count('{') > 0 and v.count('}') > 0) else "{}='{}'".format(k,v)) for k,v in list(kwargs.items()) if v != None) if len(kwargs) else '')
     return template_main.substitute(VARIABLE=function.lower(), FUNCTION=function, OPTIONS=options)
 
 def loader(host='127.0.0.1', port=1337, packages=[]):

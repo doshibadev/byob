@@ -7,10 +7,7 @@ import imp
 import sys
 import logging
 import contextlib
-if sys.version_info[0] < 3:
-    from urllib2 import urlopen
-else:
-    from urllib.request import urlopen
+from urllib.request import urlopen
 
 def log(info='', level='debug'):
     logging.basicConfig(level=logging.DEBUG, handlers=[logging.StreamHandler()])

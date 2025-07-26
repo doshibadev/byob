@@ -88,7 +88,7 @@ import itertools
 import threading
 if sys.version_info[0] < 3:
     from urllib2 import urlparse
-    from urllib import pathname2url
+    from urllib.request import pathname2url
 else:
     from urllib import parse as urlparse
     from urllib.request import pathname2url
@@ -98,9 +98,9 @@ else:
 import colorama
 
 # modules
-import core.util as util
-import core.security as security
-import core.generators as generators
+from . import core.util as util
+from . import core.security as security
+from . import core.generators as generators
 
 # globals
 colorama.init(autoreset=True)
@@ -124,7 +124,7 @@ def main():
     Run the generator
 
     """
-    util.display(globals()['__banner'], color=random.choice(list(filter(lambda x: bool(str.isupper(x) and 'BLACK' not in x), dir(colorama.Fore)))), style='normal')
+    util.display(globals()['__banner'], color=random.choice(list([x for x in dir(colorama.Fore) if bool(str.isupper(x) and 'BLACK' not in x)])), style='normal')
 
     parser = argparse.ArgumentParser(
         prog='client.py',

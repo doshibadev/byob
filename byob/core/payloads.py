@@ -20,14 +20,9 @@ import threading
 import subprocess
 import collections
 import logging.handlers
-if sys.version_info[0] < 3:
-    from urllib import urlretrieve
-    from urllib2 import urlopen, urlparse
-    import StringIO
-else:
-    from urllib import parse as urlparse
-    from urllib.request import urlopen, urlretrieve
-    from io import StringIO
+from urllib import parse as urlparse
+from urllib.request import urlopen, urlretrieve
+from io import StringIO
 
 # modules
 try:
@@ -174,14 +169,6 @@ class Payload():
 
     @threaded
     def _get_resources(self, target=None, base_url=None):
-        if sys.version_info[0] < 3:
-            from urllib import urlretrieve
-            from urllib2 import urlopen, urlparse
-            import StringIO
-        else:
-            from urllib import parse as urlparse
-            from urllib.request import urlopen, urlretrieve
-            from io import StringIO
         try:
             if not isinstance(target, list):
                 raise TypeError("keyword argument 'target' must be type 'list'")
@@ -344,13 +331,6 @@ class Payload():
         :param str filename:    name of the file to save the file as
 
         """
-        if sys.version_info[0] < 3:
-            from urllib import urlretrieve
-            from urllib2 import urlopen, urlparse
-            import StringIO
-        else:
-            from urllib import parse as urlparse
-            from urllib.request import urlopen, urlretrieve
         if url.startswith('http'):
             try:
                 path, _ = urlretrieve(url, filename) if filename else urlretrieve(url)
