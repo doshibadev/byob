@@ -8,11 +8,7 @@ import json
 import time
 import string
 import threading
-
-try:
-    from StringIO import StringIO  # Python 2
-except ImportError:
-    from io import StringIO        # Python 3
+from io import StringIO
 
 # utilities
 import util

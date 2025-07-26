@@ -8,9 +8,9 @@ import sys
 import time
 import threading
 
-try:
+if sys.version_info[0] < 3:
     from StringIO import StringIO  # Python 2
-except ImportError:
+else:
     from io import StringIO        # Python 3
 
 # packages

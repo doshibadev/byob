@@ -28,9 +28,9 @@ def _concat_list(a, b):
 
 
 # Python 3 compatibility
-try:
-    xrange
-except NameError:
+if sys.version_info[0] < 3:
+    pass  # xrange exists in Python 2
+else:
     xrange = range
 
     # Python 3 supports bytes, which is already an array of integers

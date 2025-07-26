@@ -282,7 +282,7 @@ def registry_key(key, subkey, value):
 
     """
     try:
-        import _winreg
+        import winreg as _winreg
         reg_key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, key, 0, _winreg.KEY_WRITE)
         _winreg.SetValueEx(reg_key, subkey, 0, _winreg.REG_SZ, value)
         _winreg.CloseKey(reg_key)
@@ -302,15 +302,10 @@ def png(image):
     Returns raw image data in PNG format
 
     """
-    import sys
     import zlib
     import numpy
     import struct
-
-    try:
-        from StringIO import StringIO  # Python 2
-    except ImportError:
-        from io import StringIO        # Python 3
+    from io import BytesIO
 
     if isinstance(image, numpy.ndarray):
         width, height = (image.shape[1], image.shape[0])
@@ -339,15 +334,13 @@ def png(image):
     iend[3] = struct.pack('>I', zlib.crc32(iend[1]) & 0xffffffff)
     iend[0] = struct.pack('>I', len(iend[2]))
 
-    fileh = StringIO()
+    fileh = BytesIO()
     fileh.write(str(magic))
     fileh.write(str(b"".join(ihdr)))
     fileh.write(str(b"".join(idat)))
     fileh.write(str(b"".join(iend)))
     fileh.seek(0)
     output = fileh.getvalue()
-    if sys.version_info[0] > 2:
-        output = output.encode('utf-8') # python3 compatibility
     return output
 
 
@@ -527,11 +520,7 @@ def ftp(source, host=None, user=None, password=None, filetype=None):
     import os
     import time
     import ftplib
-
-    try:
-        from StringIO import StringIO  # Python 2
-    except ImportError:
-        from io import StringIO        # Python 3
+    from io import StringIO, BytesIO
 
     if host and user and password:
         path  = ''

@@ -13,7 +13,7 @@ import subprocess
 
 # packages
 if sys.platform == 'win32':
-    import _winreg
+    import winreg as _winreg
 
 # utilities
 import util
